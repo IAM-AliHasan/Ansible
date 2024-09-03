@@ -1,0 +1,38 @@
+---
+# Ansible Playbook to Install Apache HTTP Server and Copy Index File
+# Author: Ali Hasan
+# Date: 03/09/2024
+# Description: This playbook installs the Apache HTTP server on all hosts and copies a new index.html file to the web server's root directory, backing up the original file if it differs.
+
+- name: Setup Apache HTTP Server
+  hosts: all
+  become: yes
+  vars:
+    apache_package: apache2
+    web_root: /var/www/html
+    index_file: index.html
+  tasks:
+    - name: Install Apache HTTP server
+      ansible.builtin.apt:
+        name: "{{ apache_package }}"
+        state: present
+      tags:
+        - apache
+        - install
+
+    - name: Copy index.html to web root
+      ansible.builtin.copy:
+        src: "{{ index_file }}"
+        dest: "{{ web_root }}/index.html"
+        owner: root
+        group: root
+        mode: '0644'
+        backup: yes
+      tags:
+        - apache
+        - copy
+
+# Metadata
+# This playbook is designed to be idempotent and can be run multiple times without causing issues.
+# Ensure that the 'index.html' file is present in the same directory as this playbook or provide the correct path.
+# The playbook uses the 'apt' module, which is specific to Debian-based systems like Ubuntu.
