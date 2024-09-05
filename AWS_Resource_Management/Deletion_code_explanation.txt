@@ -1,0 +1,70 @@
+Playbook Header
+---
+- name: Terminate specific AWS EC2 instance
+  hosts: localhost
+  vars_files:
+    - secret.yaml
+  become: false
+  gather_facts: false
+
+---: Indicates the start of a YAML document.
+name: Provides a descriptive name for the playbook. This helps in understanding the playbook’s purpose.
+hosts: Specifies the target hosts for the playbook. Here, it’s set to localhost, meaning the playbook will run on the local machine.
+vars_files: Includes external YAML files containing variables. In this case, secret.yaml holds the AWS credentials.
+become: Indicates whether to use privilege escalation (e.g., sudo). It’s set to false here.
+gather_facts: Disables fact gathering to speed up the playbook execution. This is useful when you don’t need system facts.
+Fetch Instances
+- name: Fetch instances with specific tag
+  amazon.aws.ec2_instance_info:
+    region: us-east-1
+    aws_access_key: "{{ aws_access_key1 }}"
+    aws_secret_key: "{{ aws_secret_key1 }}"
+    filters:
+      "tag:Name": "MyInstance"  # Replace with your tag key and value
+  register: ec2_info
+
+name: Describes the task.
+amazon.aws.ec2_instance_info: An Ansible module used to gather information about EC2 instances.
+region: Specifies the AWS region where the instances are located.
+aws_access_key and aws_secret_key: Retrieve the AWS credentials from the secret.yaml file.
+filters: Filters the instances based on specific criteria. Here, it filters instances with the tag Name: MyInstance. Adjust the tag key and value as needed.
+register: Stores the result of the task in the ec2_info variable.
+Debug Fetched Instances
+- name: Debug fetched instances
+  debug:
+    var: ec2_info
+
+name: Describes the task.
+debug: Uses the Ansible debug module to print the value of the ec2_info variable. This helps in verifying the fetched instances.
+Terminate the EC2 Instance
+- name: Terminate the EC2 instance
+  amazon.aws.ec2_instance:
+    region: us-east-1
+    aws_access_key: "{{ aws_access_key1 }}"
+    aws_secret_key: "{{ aws_secret_key1 }}"
+    instance_ids: "{{ item.instance_id }}"
+    state: absent
+  loop: "{{ ec2_info.instances }}"
+  register: terminated_instance
+
+name: Describes the task.
+amazon.aws.ec2_instance: An Ansible module used to manage EC2 instances.
+region: Specifies the AWS region where the instance is located.
+aws_access_key and aws_secret_key: Retrieve the AWS credentials from the secret.yaml file.
+instance_ids: Specifies the ID of the instance to be terminated. This ID is retrieved from the ec2_info variable.
+state: Set to absent to terminate the instance.
+loop: Iterates over the list of instances in ec2_info.instances to terminate each one.
+register: Stores the result of the task in the terminated_instance variable.
+Debug Termination Result
+- name: Debug termination result
+  debug:
+    var: terminated_instance
+
+name: Describes the task.
+debug: Uses the Ansible debug module to print the value of the terminated_instance variable. This helps in verifying the termination result.
+Summary
+Playbook Header: Sets up the playbook with necessary configurations and includes the secret.yaml file for AWS credentials.
+Fetch Instances: Uses the amazon.aws.ec2_instance_info module to gather information about EC2 instances with a specific tag.
+Debug Fetched Instances: Prints the details of the fetched instances for verification.
+Terminate the EC2 Instance: Uses the amazon.aws.ec2_instance module to terminate the instances by setting their state to absent.
+Debug Termination Result: Prints the result of the termination process for verification.
