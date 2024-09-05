@@ -1,0 +1,23 @@
+---
+- hosts: localhost
+  vars_files:
+    - secret.yaml
+
+  tasks:
+    - name: Start an instance with a public IP address
+      amazon.aws.ec2_instance:
+        # key_name: "prod-ssh-key"
+        # vpc_subnet_id: subnet-5ca1ab1e
+        instance_type: t2.micro
+        security_groups: ["default"]
+        region: us-east-1
+        aws_access_key: "{{ aws_access_key1 }}"
+        aws_secret_key: "{{ aws_secret_key1 }}"
+        image_id: ami-0e86e20dae9224db8
+        tags:
+          Environment: Linux
+      register: ec2
+
+    - name: Debug EC2 instance creation
+      debug:
+        var: ec2
