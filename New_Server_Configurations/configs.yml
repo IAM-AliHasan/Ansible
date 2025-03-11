@@ -1,0 +1,121 @@
+---
+# Playbook Name: Configure New VM for Next.js and Nest.js Applications
+# Author: Ali Hassan
+# Description:
+#   This playbook prepares a VM for hosting Node.js-based applications (Next.js for front-end, Nest.js for back-end).
+#   It installs system dependencies, configures Node.js and npm, sets up UFW rules, and ensures server readiness.
+
+- name: Configure VM for Next.js and Nest.js Applications
+  hosts: all
+  become: true  # Run tasks as root
+  vars:
+    # Required packages for the server
+    required_packages:
+      - git
+      - vim
+      - curl
+    # Unwanted ports to be blocked
+    unwanted_ports:
+      - 23     # Telnet
+      - 69     # TFTP
+      - 137    # NetBIOS
+      - 138    # NetBIOS
+      - 139    # NetBIOS
+      - 445    # SMB
+    # Allowed ports for the application and SSH
+    allowed_ports:
+      - 22     # SSH
+      - 80     # HTTP
+      - 443    # HTTPS
+    # Node.js version to be installed
+    node_version: "18.x"
+
+  tasks:
+    # Step 1: Update the system and install essential packages
+    - name: Update the APT cache and upgrade the system
+      apt:
+        update_cache: yes
+        upgrade: dist
+
+    - name: Install basic server dependencies
+      apt:
+        name: "{{ required_packages }}"
+        state: present
+
+    # Step 2: Install Node.js and npm (for Next.js and Nest.js)
+    - name: Add NodeSource's GPG key for Node.js
+      apt_key:
+        url: https://deb.nodesource.com/gpgkey/nodesource.gpg.key
+        state: present
+
+    - name: Add NodeSource repository for Node.js
+      apt_repository:
+        repo: "deb https://deb.nodesource.com/node_{{ node_version }} $(lsb_release -sc) main"
+        state: present
+
+    - name: Install Node.js and npm
+      apt:
+        name: nodejs
+        state: present
+
+    - name: Install global npm packages for Next.js and Nest.js
+      npm:
+        name:
+          - create-next-app  # CLI for Next.js
+          - @nestjs/cli      # CLI for Nest.js
+        global: yes
+        state: present
+
+    # Step 3: Configure UFW (Firewall)
+    - name: Ensure UFW is installed
+      apt:
+        name: ufw
+        state: present
+
+    - name: Allow essential ports through the firewall
+      ufw:
+        rule: allow
+        port: "{{ item }}"
+        proto: tcp
+      loop: "{{ allowed_ports }}"
+
+    - name: Block unwanted ports
+      ufw:
+        rule: deny
+        port: "{{ item }}"
+        proto: tcp
+      loop: "{{ unwanted_ports }}"
+
+    - name: Enable the firewall
+      ufw:
+        state: enabled
+
+    # Step 4: Prepare Application Directory
+    - name: Create application directories for Next.js and Nest.js
+      file:
+        path: "/var/www/next-nest-app"
+        state: directory
+        owner: www-data
+        group: www-data
+        mode: '0755'
+
+    # Step 5: Validate and Clean Up
+    - name: Ensure the Nginx web server is installed and running
+      apt:
+        name: nginx
+        state: present
+
+    - name: Start and enable Nginx service
+      service:
+        name: nginx
+        state: started
+        enabled: yes
+
+    - name: Remove unused packages to clean up the system
+      apt:
+        name: "*"
+        state: absent
+        autoremove: yes
+        purge: yes
+
+  # End of playbook
