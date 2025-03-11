@@ -28,7 +28,7 @@
       - 80     # HTTP
       - 443    # HTTPS
     # Node.js version to be installed
-    node_version: "18.x"
+    node_version: "22.14"
 
   tasks:
     # Step 1: Update the system and install essential packages
